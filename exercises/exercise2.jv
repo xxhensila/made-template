@@ -1,0 +1,78 @@
+
+// default output of a block becomes the default input of the next block, building a chain of computing steps. 
+pipeline TreePipeline{
+    TreePlantExtractor
+        ->TreePlantTextFileInterpreter;
+
+    TreePlantTextFileInterpreter
+        ->TreePlantCSVInterpreter
+        ->TreePlantTableInterpreter
+        ->TreePlantLoader;
+
+    // Extracts a File from the web.
+    block TreePlantExtractor oftype HttpExtractor {
+
+        url: "https://opendata.rhein-kreis-neuss.de/api/v2/catalog/datasets/stadt-neuss-herbstpflanzung-2023/exports/csv";
+    }
+
+    // Interprets a File as a TextFile.
+    block TreePlantTextFileInterpreter oftype TextFileInterpreter { }
+
+    // Interprets an input file as a csv-file containing string-values delimited.
+    block TreePlantCSVInterpreter oftype CSVInterpreter {
+        delimiter: ";";
+    }
+
+    // Primitive value data type
+    valuetype Stadtteil_Constraint_ON oftype text {
+    constraints: [
+        Stadtteil_Constraint,
+    ];
+    }
+    // Considers starting with keyword
+    constraint Stadtteil_Constraint oftype AllowlistConstraint {
+         allowlist: ["Vogelsang", "Vogelsang Bols-Siedlung"];
+    }
+
+    valuetype Id_Constraint_ON oftype text {
+    constraints: [
+        Id_Constraint,
+    ];
+    }
+    constraint Id_Constraint oftype RegexConstraint {
+          regex: /\d{1,3}\.\d+\s*,\s*\d{1,3}\.\d+/;
+    }
+
+    //   two floating-point numbers separated by a comma.
+    // \d{1,3}      :1 to 3 digits (0-9).
+    // \.           :a literal decimal point.
+    // \d+          :one or more digits (0-9) after the decimal point.
+    // \s*          :zero or more whitespace characters (spaces, tabs, etc.).
+    // ,            :a literal comma.
+    // \s*          :zero or more whitespace characters again.
+    // \d{1,3}      :1 to 3 digits for the second number.
+    // \.           :a literal decimal point for the second number.
+    // \d+          :one or more digits after the decimal point for the second number.
+
+    
+    // Interprets a Sheet as a Table.
+    block TreePlantTableInterpreter oftype TableInterpreter {
+        header: true;
+        columns: [
+            "lfd_nr" oftype integer,
+            "stadtteil" oftype Stadtteil_Constraint_ON,
+            "standort" oftype text,
+            "baumart_botanisch" oftype text,
+            "id" oftype Id_Constraint_ON,
+            "baumfamilie" oftype text,
+
+        ];
+    }
+     
+
+    // Loads a Table into a SQLite database sink.
+    block TreePlantLoader oftype SQLiteLoader {
+        table: "trees";
+        file: "trees.sqlite";
+    }
+}
