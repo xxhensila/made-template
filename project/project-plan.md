@@ -30,7 +30,6 @@ _Description_: This dataset provides comprehensive information on the cost of li
 _Description_: This dataset contains detailed information on house listings across the U.S in 2023. It includes variables such as property location, price, number of bedrooms and bathrooms, square footage, and other property-specific details. This data is valuable for understanding current housing market conditions, regional price variations, and housing affordability in various areas across the country.
 
 ## Work Packages
--[x]
 #### **Work Package 1: Data Collection**
 - **Description**: As a first step, we aim to gather relevant datasets for this project. We will identify and collect data from reliable sources, focusing on datasets that include housing prices, essential living costs in the U.S.
 - **Deliverables**:
