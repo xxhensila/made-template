@@ -60,7 +60,7 @@ pipeline CountryPipeline{
     }
 
     // Validation via Constraints
-    valuetype CountryCodeConstraint oftype text {
+    valuetype CountryCodeConstraint oftype CountryCodeAlpha3 {
         constraints: [
             CountryCode_Constraint,
     ];
@@ -69,23 +69,25 @@ pipeline CountryPipeline{
             regex: /^[A-Z]{3}$/;
     }
 
-    valuetype BISConstraint oftype text {
+    valuetype BISConstraint oftype decimal {
         constraints: [
             BIS_Constraint,
     ];
     }
-    constraint BIS_Constraint oftype RegexConstraint {
-       regex: /^(0(\.\d+)?|1(\.0+)?)$/;
+    constraint BIS_Constraint oftype RangeConstraint {
+        lowerBound: 0;
+        lowerBoundInclusive: true;
+        upperBound: 1;
     }
+    
 
-    valuetype GDPConstraint oftype text {
+    valuetype GDPConstraint oftype decimal {
     constraints: [
             GDP_Constraint,
     ];
     }
-    constraint GDP_Constraint oftype RegexConstraint { 
-        regex: /^\d+(\.\d+)?$/;
-    }
+    constraint GDP_Constraint on decimal: 
+        value >= 0;
 
     // Interprets a Sheet as a Table.
     block WorldDevelopmentStatsBISTableInterpreter oftype TableInterpreter {
