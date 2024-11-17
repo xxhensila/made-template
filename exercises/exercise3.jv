@@ -1,20 +1,18 @@
-
 // Chain of computing steps.
+// 2 pipes in sqlite.
 pipeline CountryPipeline{
 
     WorldDevelopmentStatsExtractor
-    -> WorldDevelopmentStatsTextXLSXInterpreter
-    -> CountrySheetPicker
-    ->FigureColumnDeleter
-    ->FigureRowDeleter
-    -> WorldDevelopmentDataSelector
-    -> NameHeaderWriter
-    -> WorldDevelopmentStatsBISTableInterpreter
-    -> WorldDevelopmentStatsBISLoader;
-  
-     NameHeaderWriter
-    -> WorldDevelopmentStatsGDPTableInterpreter
-    -> WorldDevelopmentStatsGDPLoader;
+        -> WorldDevelopmentStatsTextXLSXInterpreter
+        -> CountrySheetPicker
+        -> NameHeaderWriter
+        -> WorldDevelopmentDataSelector
+        ->WorldDevelopmentStatsGDPTableInterpreter  
+        ->WorldDevelopmentStatsGDPLoader;
+//   pipe 2
+     WorldDevelopmentDataSelector
+        -> WorldDevelopmentStatsBISTableInterpreter
+        -> WorldDevelopmentStatsBISLoader;
 
     // Extracts a File from the web.
     block WorldDevelopmentStatsExtractor oftype HttpExtractor {
@@ -27,68 +25,50 @@ pipeline CountryPipeline{
 
     }
     
-
     // Selects a sheet from the Workbook.
     block CountrySheetPicker oftype SheetPicker {
-        sheetName: 'Figure S5.1.2';
+        sheetName: "Figure S5.1.2";
     }
 
-    // Shifts table to the start of excel file 
-     block FigureColumnDeleter oftype ColumnDeleter {
-        delete: [column A, column B, column C, column D, column E, column F, column G, column H,  column I,  column J, column K, column L, column M, column N, column O];
-     }
-
-    //  Deletes blank row
-     block FigureRowDeleter oftype RowDeleter{
-        delete: [row 1, row 21, row 42];
-     }
-
-    // Selects 44 rows and 4 columns
+    // Selects data in the range specified
     block WorldDevelopmentDataSelector oftype CellRangeSelector {
-        select: range A1:D42;
-    }
+        select: range P2:S45;
+        }
 
-    // Renames columns.
+    // Renames 4 columns.
     block NameHeaderWriter oftype CellWriter {
-        at: range A1:D1;
+        at: range P2:S2;  
         write: [
-        "Country Code",
-        "Economy",
-        "GDP per capita",
-        "Bond Issuance Share"
+            "Country Code",
+            "Economy",
+            "GDP per Capita",
+            "Bond Issuance Share"
         ];
     }
 
-    valuetype BISConstraint oftype decimal {
-        constraints: [
-            BIS_Constraint
-    ];
-    }
-    constraint BIS_Constraint oftype RangeConstraint {
-        lowerBound: 0;
-        lowerBoundInclusive: true;
-        upperBound: 1;
-        upperBoundInclusive: true;
-    }
-    
-    valuetype GDPConstraint oftype decimal {
-    constraints: [
-        GDP_Constraint_Pos
-    ];
-    }
-    constraint GDP_Constraint_Pos oftype RangeConstraint{
-        lowerBound: 0;
-        lowerBoundInclusive: false;
-    }
+    // Interprets a Sheet as a Table. First table
+    block WorldDevelopmentStatsGDPTableInterpreter oftype TableInterpreter {
+            header: true;
+            columns: [
+            "Country Code" oftype CountryConstraint,
+            "GDP per Capita" oftype GDPConstraint
+         ];
+        }
 
-    // Interprets a Sheet as a Table.
+    // Interprets a Sheet as a Table. Second table
     block WorldDevelopmentStatsBISTableInterpreter oftype TableInterpreter {
         header: true;
         columns: [
-        "Country Code" oftype CountryCodeAlpha3,
-        "Bond Issuance Share" oftype BISConstraint
+            "Country Code" oftype CountryConstraint,
+            "Bond Issuance Share" oftype BISConstraint
      ];
     }
+    
+    // Loads a Table into a SQLite database sink.
+    block WorldDevelopmentStatsGDPLoader oftype SQLiteLoader {
+            table: "gdpPerCapita";
+            file: "country-stats.sqlite";
+        }
 
     // Loads a Table into a SQLite database sink.
     block WorldDevelopmentStatsBISLoader oftype SQLiteLoader {
@@ -96,19 +76,36 @@ pipeline CountryPipeline{
         file: "country-stats.sqlite";
     }
 
-    // Interprets a Sheet as a Table.
-    block WorldDevelopmentStatsGDPTableInterpreter oftype TableInterpreter {
-            header: true;
-            columns: [
-            "Country Code" oftype CountryCodeAlpha3,
-            "GDP per capita" oftype GDPConstraint
-         ];
-        }
-        
-    // Loads a Table into a SQLite database sink.
-    block WorldDevelopmentStatsGDPLoader oftype SQLiteLoader {
-            table: "gdpPerCapita";
-            file: "country-stats.sqlite";
-        }
-    
 }
+    // Constraints & Primitive Value Types
+    constraint CountryConstraint_Valid on CountryConstraint:
+                //valid ISO 3166-1 alpha-3 country code
+                value matches /^[A-Za-z]{3}$/; 
+
+    constraint GDPConstraint_Valid on GDPConstraint:
+                //positive decimal
+                value > 0;
+
+    constraint BISConstraint_Valid on BISConstraint:
+                //constrained positive decimal
+                value >= 0 and value <= 1;
+
+    valuetype CountryConstraint oftype text {
+    constraints: [
+                CountryConstraint_Valid
+                ];
+                 }
+
+    valuetype GDPConstraint oftype decimal {
+    constraints: [
+                GDPConstraint_Valid
+                 ];
+                 }
+
+    valuetype BISConstraint oftype decimal {
+    constraints: [
+                BISConstraint_Valid
+                 ];
+                 }
+
+
