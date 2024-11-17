@@ -1,0 +1,120 @@
+
+// Chain of computing steps.
+pipeline CountryPipeline{
+
+    WorldDevelopmentStatsExtractor
+    -> WorldDevelopmentStatsTextXLSXInterpreter
+    -> CountrySheetPicker
+    ->FigureColumnDeleter
+    ->FigureRowDeleter
+    -> WorldDevelopmentDataSelector
+    -> NameHeaderWriter
+    -> WorldDevelopmentStatsBISTableInterpreter
+    -> WorldDevelopmentStatsBISLoader;
+  
+     NameHeaderWriter
+    -> WorldDevelopmentStatsGDPTableInterpreter
+    -> WorldDevelopmentStatsGDPLoader;
+
+    // Extracts a File from the web.
+    block WorldDevelopmentStatsExtractor oftype HttpExtractor {
+
+        url: "https://thedocs.worldbank.org/en/doc/7d852628d96b9411d43e5d36d5dff941-0050062022/original/Graphs-Chapter-5-02082022.xlsx";
+    }
+
+    // Interprets it as XLSX file (direct Workbook transform).
+    block WorldDevelopmentStatsTextXLSXInterpreter oftype XLSXInterpreter { 
+
+    }
+    
+
+    // Selects a sheet from the Workbook.
+    block CountrySheetPicker oftype SheetPicker {
+        sheetName: 'Figure S5.1.2';
+    }
+
+    // Shifts table to the start of excel file 
+     block FigureColumnDeleter oftype ColumnDeleter {
+        delete: [column A, column B, column C, column D, column E, column F, column G, column H,  column I,  column J, column K, column L, column M, column N, column O];
+     }
+
+    //  Deletes blank row
+     block FigureRowDeleter oftype RowDeleter{
+        delete: [row 1];
+     }
+
+    // Selects 44 rows and 4 columns
+    block WorldDevelopmentDataSelector oftype CellRangeSelector {
+        select: range A0:D44;
+    }
+
+    // Renames columns.
+    block NameHeaderWriter oftype CellWriter {
+        at: range A1:D1;
+        write: [
+        "Country Code",
+        "Economy",
+        "GDP per capita",
+        "Bond Issuance Share"
+        ];
+    }
+
+    // Validation via Constraints
+    valuetype CountryCodeConstraint oftype text {
+        constraints: [
+            CountryCode_Constraint,
+    ];
+    }
+    constraint CountryCode_Constraint oftype RegexConstraint {
+            regex: /^[A-Z]{3}$/;
+    }
+
+    valuetype BISConstraint oftype text {
+        constraints: [
+            BIS_Constraint,
+    ];
+    }
+    constraint BIS_Constraint oftype RegexConstraint {
+       regex: /^(0(\.\d+)?|1(\.0+)?)$/;
+    }
+
+    valuetype GDPConstraint oftype text {
+    constraints: [
+            GDP_Constraint,
+    ];
+    }
+    constraint GDP_Constraint oftype RegexConstraint { 
+        regex: /^\d+(\.\d+)?$/;
+    }
+
+    // Interprets a Sheet as a Table.
+    block WorldDevelopmentStatsBISTableInterpreter oftype TableInterpreter {
+        header: true;
+        columns: [
+        "Country Code" oftype CountryCodeConstraint,
+        "Bond Issuance Share" oftype BISConstraint
+     ];
+    }
+     
+    // Loads a Table into a SQLite database sink.
+    block WorldDevelopmentStatsBISLoader oftype SQLiteLoader {
+        table: "bondIssuance";
+        file: "country-stats.sqlite";
+    }
+
+    // Interprets a Sheet as a Table.
+    block WorldDevelopmentStatsGDPTableInterpreter oftype TableInterpreter {
+            header: true;
+            columns: [
+            "Country Code" oftype CountryCodeConstraint,
+            "GDP per capita" oftype GDPConstraint
+         ];
+        }
+        
+    // Loads a Table into a SQLite database sink.
+    block WorldDevelopmentStatsGDPLoader oftype SQLiteLoader {
+            table: "gdpPerCapita";
+            file: "country-stats.sqlite";
+        }
+    
+}
