@@ -50,7 +50,7 @@ pipeline CountryPipeline{
     block WorldDevelopmentStatsGDPTableInterpreter oftype TableInterpreter {
             header: true;
             columns: [
-            "Country Code" oftype CountryConstraint,
+            "Country Code" oftype  CountryCodeAlpha3,
             "GDP per Capita" oftype GDPConstraint
          ];
         }
@@ -59,7 +59,7 @@ pipeline CountryPipeline{
     block WorldDevelopmentStatsBISTableInterpreter oftype TableInterpreter {
         header: true;
         columns: [
-            "Country Code" oftype CountryConstraint,
+            "Country Code" oftype  CountryCodeAlpha3 ,
             "Bond Issuance Share" oftype BISConstraint
      ];
     }
@@ -78,9 +78,9 @@ pipeline CountryPipeline{
 
 }
     // Constraints & Primitive Value Types
-    constraint CountryConstraint_Valid on CountryConstraint:
-                //valid ISO 3166-1 alpha-3 country code
-                value matches /^[A-Za-z]{3}$/; 
+    // constraint CountryConstraint_Valid on CountryConstraint:
+    //             //valid ISO 3166-1 alpha-3 country code
+    //             value matches /^[A-Za-z]{3}$/; 
 
     constraint GDPConstraint_Valid on GDPConstraint:
                 //positive decimal
@@ -90,11 +90,11 @@ pipeline CountryPipeline{
                 //constrained positive decimal
                 value >= 0 and value <= 1;
 
-    valuetype CountryConstraint oftype text {
-    constraints: [
-                CountryConstraint_Valid
-                ];
-                 }
+    // valuetype CountryConstraint oftype text {
+    // constraints: [
+    //             CountryConstraint_Valid
+    //             ];
+    //              }
 
     valuetype GDPConstraint oftype decimal {
     constraints: [
