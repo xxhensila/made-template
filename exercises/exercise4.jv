@@ -1,0 +1,116 @@
+// This file builds an automated pipeline
+
+// Chain of computing steps
+pipeline TemperaturePipeline{
+    TemperatureExtractor
+        ->TemperatureArchiveInterpreter
+        ->TemperatureFilePicker
+        ->TemperatureTextFileInterpreter;
+
+    TemperatureTextFileInterpreter
+        ->TemperatureCSVInterpreter
+        ->TemperatureColumnDeleter
+        ->TemperatureSelector
+        ->TemperatureTableInterpreter
+        ->CelsiusToFahrenheitTransformer_t
+        ->CelsiusToFahrenheitTransformer_bt
+        ->TemperatureLoader;
+
+    //Extracts a zip file from the web.
+    block TemperatureExtractor oftype HttpExtractor { 
+        url: "https://www.mowesta.com/data/measure/mowesta-dataset-20221107.zip";
+    } 
+
+    // Interprets the zip file as archive file and converts it to a FileSystem
+    block TemperatureArchiveInterpreter oftype ArchiveInterpreter {
+        archiveType: "zip";
+    }
+
+    // Selects a file from the FileSystem (zip) 
+    block TemperatureFilePicker oftype FilePicker {
+        path: "./data.csv";
+    }
+
+    // Interprets the file as a TextFile.
+    block TemperatureTextFileInterpreter oftype TextFileInterpreter { }
+
+    // Interprets the input file as a csv-file containing string-values delimited.
+    block TemperatureCSVInterpreter oftype CSVInterpreter {
+        delimiter: ";";
+    }
+
+    // Removes unnecessary columns
+    block TemperatureColumnDeleter oftype ColumnDeleter {
+        delete: [column F, column G, column H, column I, column K, column M, column N, column O];
+    }
+    
+    //Selects subset of sheet to produce new sheet
+    block TemperatureSelector oftype CellRangeSelector {
+        select: range A1:F*;
+    }
+    
+    // Constraints
+    constraint IdConstraint_Valid on IdConstraint:
+            //positive decimal
+            value > 0;
+
+    constraint monthConstraint_Valid on integer:
+            //month 
+            value > 0 and value <= 12;
+
+    // Primitive Value Types
+    valuetype IdConstraint oftype integer {
+    constraints: [
+                IdConstraint_Valid
+                 ];
+                 }
+
+    valuetype monthConstraint oftype integer {
+    constraints: [
+                monthConstraint_Valid
+                 ];
+                 }
+     
+     
+    // Converts temperature from degree Celsius to Fahrenheit   
+    transform CelsiusToFahrenheit {
+        from TemperatureInCelsius oftype decimal;
+        to TemperatureInFahrenheit oftype decimal;
+
+        TemperatureInFahrenheit: (TemperatureInCelsius * 9/5) + 32;
+    }
+
+    // Interprets a Sheet as a Table
+    block TemperatureTableInterpreter oftype TableInterpreter {
+        header : false;
+        columns : [
+            "id" oftype IdConstraint,
+            "producer" oftype text,
+            "model" oftype text,
+            "month" oftype monthConstraint,
+            "temperature" oftype decimal,
+            "battery_temperature" oftype decimal,
+        ];
+    }
+
+    // Applies the transform on each value of 'temperature' column
+    block CelsiusToFahrenheitTransformer_t oftype TableTransformer {
+        inputColumns: ['temperature'];
+        outputColumn: 'temperature';
+        uses: CelsiusToFahrenheit;
+    }
+
+    // Applies the transform on each value of 'battery_temperature' column
+    block CelsiusToFahrenheitTransformer_bt oftype TableTransformer {
+        inputColumns: ['battery_temperature'];
+        outputColumn: 'battery_temperature';
+        uses: CelsiusToFahrenheit;
+    }
+
+    // Loads the table into the SQLite database sink.
+    block TemperatureLoader oftype SQLiteLoader {
+        table: "temperatures";
+        file: "temperatures.sqlite";
+    }
+
+}
