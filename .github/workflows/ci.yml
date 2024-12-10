@@ -40,3 +40,13 @@ jobs:
       run: |
         echo "Listing all files and directories:"
         ls -lR
+    
+    - name: Run pipeline
+      run: |
+        chmod +x ./project/pipeline.sh
+        ./project/pipeline.sh
+
+    - name: Run tests
+      run: |
+        chmod +x ./project/tests.sh
+        ./project/tests.sh
