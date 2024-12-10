@@ -13,19 +13,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    
     - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
         python-version: "3.11"
 
+    
     - name: Install dependencies
       run: |
         pip install --upgrade pip
         pip install pandas sqlalchemy kaggle pytest
 
+    
     - name: Configure Kaggle API credentials
       run: |
         mkdir -p ~/.kaggle
@@ -35,13 +39,45 @@ jobs:
         KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
         KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
 
-
+    
     - name: Debug file paths
       run: |
-        echo "Listing all files and directories:"
-        ls -lR
-    
+        echo "Listing all files and directories in data:"
+        ls -lR data
 
+    
+    - name: Create database and tables
+      run: |
+        sqlite3 data/train_data.sqlite <<EOF
+        CREATE TABLE IF NOT EXISTS cost_of_living (
+            household_id TEXT,
+            housing_expenses FLOAT,
+            food_expenses FLOAT,
+            transport_expenses FLOAT,
+            healthcare_expenses FLOAT,
+            other_necessities_expenses FLOAT,
+            childcare_expenses FLOAT,
+            household_taxes FLOAT,
+            total_household_expenses FLOAT,
+            parents_per_household INTEGER,
+            children_per_household INTEGER,
+            state TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS house_listings (
+            property_price FLOAT,
+            property_area_meters FLOAT,
+            price_per_sq_meter FLOAT,
+            state TEXT
+        );
+        EOF
+
+    
+    - name: Run pipeline
+      run: |
+        python pipeline.py
+
+    
     - name: Run tests
       run: |
         chmod +x ./project/tests.sh
