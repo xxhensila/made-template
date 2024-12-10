@@ -173,7 +173,7 @@ def test_table_and_column_format(database_full_path):
         with sqlite3.connect(database_full_path) as database_connection:
 
             expected_format_cost_of_living = [
-                ('household_id', 'INTEGER'), ('housing_expenses', 'FLOAT'), ('food_expenses', 'FLOAT'),
+                ('household_id', 'BIGINT'), ('housing_expenses', 'FLOAT'), ('food_expenses', 'FLOAT'),
                 ('transport_expenses', 'FLOAT'), ('healthcare_expenses', 'FLOAT'), ('other_necessities_expenses', 'FLOAT'),
                 ('childcare_expenses', 'FLOAT'), ('household_taxes', 'FLOAT'), ('total_household_expenses', 'FLOAT'),
                 ('parents_per_household', 'INTEGER'), ('children_per_household', 'INTEGER'), ('state', 'TEXT')
