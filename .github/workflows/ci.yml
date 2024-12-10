@@ -40,12 +40,6 @@ jobs:
         KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
 
     
-    - name: Debug file paths
-      run: |
-        echo "Listing all files and directories in data:"
-        ls -lR data
-
-    
     - name: Create database and tables
       run: |
         sqlite3 data/train_data.sqlite <<EOF
@@ -71,11 +65,6 @@ jobs:
             state TEXT
         );
         EOF
-
-    
-    - name: Run pipeline
-      run: |
-        python pipeline.py
 
     
     - name: Run tests
