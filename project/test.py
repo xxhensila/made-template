@@ -1,6 +1,6 @@
 """ This document includes automated tests for the pipeline.
 
-    Automated tests: These tests are automatically validated while tests.sh is running.
+    Automated tests: These tests are automatically validated while tests.sh script is running.
 
     Dynamic: This setup performs checks at runtime.
 
