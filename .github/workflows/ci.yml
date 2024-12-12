@@ -42,7 +42,8 @@ jobs:
     
     - name: Run the pipeline
       run: |
-        python ./project/pipeline.py 
+        chmod +x ./project/pipeline.sh
+        ./project/pipeline.sh
         
     - name: Run tests
       run: |
