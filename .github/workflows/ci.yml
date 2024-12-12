@@ -39,11 +39,9 @@ jobs:
         KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
         KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
 
-    
     - name: Run the pipeline
       run: |
-        chmod +x ./project/pipeline.sh
-        ./project/pipeline.sh
+        python ./project/pipeline.py  
         
     - name: Run tests
       run: |
