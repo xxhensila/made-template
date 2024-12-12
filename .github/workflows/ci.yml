@@ -40,33 +40,10 @@ jobs:
         KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
 
     
-    - name: Create database and tables
+    - name: Run the pipeline
       run: |
-        sqlite3 data/train_data.sqlite <<EOF
-        CREATE TABLE IF NOT EXISTS cost_of_living (
-            household_id BIGINT,
-            housing_expenses FLOAT,
-            food_expenses FLOAT,
-            transport_expenses FLOAT,
-            healthcare_expenses FLOAT,
-            other_necessities_expenses FLOAT,
-            childcare_expenses FLOAT,
-            household_taxes FLOAT,
-            total_household_expenses FLOAT,
-            parents_per_household INTEGER,
-            children_per_household INTEGER,
-            state TEXT
-        );
-
-        CREATE TABLE IF NOT EXISTS house_listings (
-            property_price FLOAT,
-            property_area_meters FLOAT,
-            price_per_sq_meter FLOAT,
-            state TEXT
-        );
-        EOF
-
-    
+        python ./project/pipeline.py 
+        
     - name: Run tests
       run: |
         chmod +x ./project/tests.sh
