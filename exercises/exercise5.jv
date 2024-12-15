@@ -1,0 +1,110 @@
+// This file builds an automated pipeline
+
+// Chain of computing steps
+pipeline Stations_Data_Pipeline{
+    Stations_Data_Extractor
+        ->Stations_Data_ArchiveInterpreter
+        ->Stations_Data_FilePicker
+        ->Stations_Data_TextFileInterpreter
+        ->Stations_Data_CSVInterpreter
+        ->Stations_Data_ColumnDeleter
+        ->Stations_Data_Selector
+        ->Stations_Data_TableInterpreter
+        ->Stations_Data_Loader;
+
+
+    //Extracts a zip file from the web.
+    block Stations_Data_Extractor oftype HttpExtractor { 
+        url: "https://gtfs.rhoenenergie-bus.de/GTFS.zip";
+    } 
+
+    // Interprets the zip file as archive file and converts it to a FileSystem
+    block Stations_Data_ArchiveInterpreter oftype ArchiveInterpreter {
+        archiveType: "zip";
+    }
+
+    // Selects a file from the FileSystem (zip) 
+    block Stations_Data_FilePicker oftype FilePicker {
+        path: "./stops.txt";
+    }
+
+    // Interprets the file as a TextFile.
+    block Stations_Data_TextFileInterpreter oftype TextFileInterpreter { }
+
+    // Interprets the input file as a csv-file containing string-values delimited.
+    block Stations_Data_CSVInterpreter oftype CSVInterpreter {
+        delimiter: ",";
+        enclosing: '"';
+    }
+
+    // Removes unnecessary columns
+    block Stations_Data_ColumnDeleter oftype ColumnDeleter {
+        delete: [column B, column D, column H, column I, column J, column K, column L];
+    }
+    
+    //Selects subset of sheet to produce new sheet
+    block Stations_Data_Selector oftype CellRangeSelector {
+        select: range A1:E*;
+    }
+    
+    // // Constraints
+    constraint stop_lon_Constraint_Valid on decimal:
+            //geo coordinates 
+            value >= -90 and value <= 90;
+
+    constraint stop_lat_Constraint_Valid on decimal:
+            //acceptable geo coord. 
+            value >= -90 and value <= 90;
+    
+    constraint name_Constraint_Valid on text:
+                //valid german 
+                value matches /^[A-Za-zäöüÄÖÜß\s-]+$/; 
+    
+    constraint zone_constraint_Valid on integer:
+                value == 1925;
+
+    // Primitive Value Types
+    valuetype nameConstraint oftype text {
+    constraints: [
+                name_Constraint_Valid
+                 ];
+                 }
+
+    valuetype lat_Constraint oftype decimal {
+    constraints: [
+                stop_lat_Constraint_Valid
+                 ];
+                 }
+
+    valuetype lon_Constraint oftype decimal {
+    constraints: [
+                stop_lon_Constraint_Valid
+                 ];
+                 }
+    valuetype zone_Constraint oftype integer {
+    constraints: [
+            zone_constraint_Valid
+                 ];
+    }
+
+
+
+    // Interprets a Sheet as a Table
+    block Stations_Data_TableInterpreter oftype TableInterpreter {
+        header : true;
+        columns : [
+            "stop_id" oftype integer,
+            "stop_name" oftype nameConstraint,
+            "stop_lat" oftype lat_Constraint,
+            "stop_lon" oftype lon_Constraint,
+            "zone_id" oftype zone_Constraint,
+        ];
+    }
+
+    // Loads the table into the SQLite database sink.
+    block Stations_Data_Loader oftype SQLiteLoader {
+        table: "stops";
+        file: "gtfs.sqlite";
+    }
+
+}
