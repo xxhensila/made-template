@@ -1,6 +1,6 @@
 """ This document includes automated tests for the pipeline.
 
-    Automated tests: These tests are automatically validated while tests.sh is running.
+    Automated tests: These tests are automatically validated while tests.sh script is running.
 
     Dynamic: This setup performs checks at runtime.
 
@@ -208,7 +208,7 @@ def test_table_and_column_format(database_full_path):
 def test_end_to_end(database_full_path):
     # Pipeline Execution
     # result = subprocess.run(["bash", "pipeline.sh"], capture_output=True, text=True)
-    result = subprocess.run(["python", "./pipeline.py"], capture_output=True, text=True)
+    result = subprocess.run(["python", "./project/pipeline.py"], capture_output=True, text=True)
     assert result.returncode == 0, f"{result.stderr}: Pipeline execution failed!"
 
     # Output Files validation

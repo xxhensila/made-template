@@ -67,8 +67,8 @@ def main():
     dfs['cost_of_living_us.csv'].columns = dfs['cost_of_living_us.csv'].columns.str.strip()
     
     cost_of_living_df = dfs['cost_of_living_us.csv']
-    cost_of_living_df['parents_per_household'] = cost_of_living_df['family_member_count'].str.extract(r'(\d+)p')[0].astype(int) 
-    cost_of_living_df['children_per_household'] = cost_of_living_df['family_member_count'].str.extract(r'p(\d+)c')[0].astype(int)
+    cost_of_living_df['parents_per_household'] = cost_of_living_df['family_member_count'].str.extract(r'(\d+)p')[0].astype('int64') 
+    cost_of_living_df['children_per_household'] = cost_of_living_df['family_member_count'].str.extract(r'p(\d+)c')[0].astype('int64')
 
     columns_to_drop_1 = ['isMetro', 'areaname', 'county','family_member_count' ] #irrelevant
     dfs['cost_of_living_us.csv'].drop(columns=columns_to_drop_1, inplace=True)
